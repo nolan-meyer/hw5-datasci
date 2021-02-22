@@ -1,6 +1,6 @@
 ---
 title: 'Weekly Exercises #5'
-author: "Put your name here"
+author: "Nolan Meyer"
 output: 
   html_document:
     keep_md: TRUE
@@ -8,6 +8,7 @@ output:
     toc_float: TRUE
     df_print: paged
     code_download: true
+    code_folding: "hide"
 ---
 
 
@@ -33,6 +34,9 @@ library(gganimate)     # for adding animation layers to ggplots
 library(transformr)    # for "tweening" (gganimate)
 library(gifski)        # need the library for creating gifs but don't need to load each time
 library(shiny)         # for creating interactive apps
+library(wesanderson)   # plot colors
+library(lemon)
+library(ggtext)
 theme_set(theme_minimal())
 ```
 
@@ -82,6 +86,86 @@ Once your repository is created, you should always open your **project** rather 
 ## Warm-up exercises from tutorial
 
   1. Choose 2 graphs you have created for ANY assignment in this class and add interactivity using the `ggplotly()` function.
+  
+```{r}
+income_distribution <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-02-09/income_distribution.csv')
+```
+  
+```{r}
+tidy_tues <- income_distribution %>%
+  filter(year >= 2002,
+         !race %in% c("Asian Alone", "Black Alone", "White Alone")) %>%
+  mutate(Race = ifelse(race == "Asian Alone or in Combination", "Asian", 
+                       ifelse(race == "Black Alone or in Combination", "Black", 
+                       ifelse(race == "White Alone, Not Hispanic", "White", race))),
+         median_income_thou = income_median/1000) %>% 
+  ggplot(aes(x = year, y = median_income_thou, color = Race)) +
+  labs(x = "", y = "", title = "Median income (in thousands of dollars) from 2002 to 2019 by race", color = "", caption = "Created by: Nolan Meyer") +
+  geom_line(size = 1) +
+  geom_text(aes(x = 2019, y = 99, label = "Asian", color = "Asian"), size = 4) +
+  geom_text(aes(x = 2019, y = 78, label = "White", color = "White"), size = 4) +
+  geom_text(aes(x = 2018.9, y = 70, label = "All Races", color = "All Races"), size = 4) +
+  geom_text(aes(x = 2017.8, y = 58, label = "Hispanic (Any Race)", color = "Hispanic (Any Race)"), size = 4) +
+  geom_text(aes(x = 2019, y = 48, label = "Black", color = "Black"), size = 4) +
+  ylim(35, 100) +
+  scale_color_manual(values=wes_palette(n = 5, name = "Darjeeling2")) +
+  theme(plot.title = element_text(size = 11, face = "bold", hjust = -.5),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        plot.background = element_rect(fill = "ivory"),
+        legend.position = "none"
+        )
+
+ggplotly(tidy_tues)
+```
+  
+  
+```{r, fig.width=8 , fig.height=5}
+perf_gard <- garden_harvest %>% 
+  group_by(vegetable) %>% 
+  summarize(n = n(), 
+            tot_veg_weight = sum(weight)) %>% 
+  mutate(weight_prop = tot_veg_weight/sum(tot_veg_weight), 
+         quant_prop = n/sum(n),
+         vegetable = str_to_title(vegetable)) %>% 
+  select(vegetable, 
+         weight_prop, 
+         quant_prop) %>% 
+  slice_max(quant_prop, n = 8) %>%              
+  pivot_longer(cols = weight_prop:quant_prop,
+               names_to = "proportion",
+               values_to = "value") %>%   
+  ggplot(aes(x = ifelse(proportion == "quant_prop", yes = -value, no = value),  
+             y = fct_reorder2(vegetable, proportion == "quant_prop", value, .desc = F), 
+             fill = proportion)) + 
+  geom_col(aes(text = value)) +
+  labs(x = "", y = "", 
+       title = "Proportion of cumulative harvest quantity and cumulative harvest weight by vegetable", 
+       subtitle = "Vegetables in the upper 25th quartile by harvest quantity") +
+  scale_fill_manual(name = "Proportion", labels = c("Quantity", "Weight"), values = c("purple", "deepskyblue1")) +
+  scale_x_symmetric(labels = abs) +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        axis.text.x = element_text(size = 10, colour = "black"),
+        axis.text.y = element_text(size = 10, colour = "black"),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none",
+        plot.title = element_markdown(face = "bold", size = 10.5, hjust = 1),
+        plot.subtitle = element_text(size = 9, margin = margin(0,0,18,0), hjust = -0.355),
+        plot.background = element_rect(fill = "snow1"))
+
+
+ggplotly(perf_gard,
+         tooltip = c("value", "x"))
+```
+  
+  
   
   2. Use animation to tell an interesting story with the `small_trains` dataset that contains data from the SNCF (National Society of French Railways). These are Tidy Tuesday data! Read more about it [here](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-26).
 
