@@ -35,8 +35,8 @@ library(transformr)    # for "tweening" (gganimate)
 library(gifski)        # need the library for creating gifs but don't need to load each time
 library(shiny)         # for creating interactive apps
 library(wesanderson)   # plot colors
-library(lemon)
-library(ggtext)
+library(lemon)         # garden graph plot
+library(ggtext)        # garden graph plot
 theme_set(theme_minimal())
 ```
 
@@ -166,12 +166,37 @@ ggplotly(perf_gard,
 ```
   
   
-  
+
   2. Use animation to tell an interesting story with the `small_trains` dataset that contains data from the SNCF (National Society of French Railways). These are Tidy Tuesday data! Read more about it [here](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-26).
 
-```{r}
+```{r, eval=FALSE}
+small_trains %>% 
+  filter(service == "National", year %in% c(2017)) %>% 
+  group_by(departure_station, month) %>% 
+  summarize(tot_month_trips = sum(total_num_trips)) %>% 
+  mutate(tot_trips = sum(tot_month_trips)) %>% 
+  arrange(desc(tot_trips)) %>% 
+  filter(tot_trips > 90000) %>%   # top 5 stations by number of trips
+  ggplot(aes(x = month, y = tot_month_trips, color = departure_station)) +
+  geom_line() +
+  labs(x = "", 
+       y = "", 
+       title = "Total number of trips per month in 2017 by departure station",
+       subtitle = "Station: {closest_state}",
+       caption = "Top 5 stations by total number of trips in 2017",
+       color = "") +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  theme(legend.position = "none") +
+  transition_states(departure_station,
+                    transition_length = 1, 
+                    state_length = 2)
 
+anim_save("stationplot.gif")
 ```
+```{r, echo=FALSE}
+knitr::include_graphics("stationplot.gif")
+```
+
 
 ## Garden data
 
